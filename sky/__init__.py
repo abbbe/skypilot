@@ -173,6 +173,7 @@ Shadeform = clouds.Shadeform
 Seeweb = clouds.Seeweb
 Yotta = clouds.Yotta
 Verda = clouds.Verda
+Scaleway = clouds.Scaleway
 
 __all__ = [
     '__version__',
@@ -200,6 +201,7 @@ __all__ = [
     'Shadeform',
     'Seeweb',
     'Yotta',
+    'Scaleway',
     'Optimizer',
     'OptimizeTarget',
     'backends',

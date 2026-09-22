@@ -37,6 +37,7 @@ from sky import sky_logging
 from sky.adaptors import gcp
 from sky.adaptors import ibm
 from sky.adaptors import runpod
+from sky.adaptors import scaleway as scaleway_adaptor
 from sky.adaptors import seeweb as seeweb_adaptor
 from sky.adaptors import shadeform as shadeform_adaptor
 from sky.adaptors import vast
@@ -416,6 +417,36 @@ def setup_verda_authentication(config: Dict[str, Any]) -> Dict[str, Any]:
         if not any(ssh_key.public_key == public_key
                    for ssh_key in current_key_list):
             verda_client.ssh_keys_create(name='skypilot-key', key=public_key)
+
+    config['auth']['ssh_public_key'] = public_key_path
+    return configure_ssh_info(config)
+
+
+def setup_scaleway_authentication(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Sets up SSH authentication for Scaleway.
+
+    Scaleway injects the SSH keys registered on the *project* into every
+    instance at boot via cloud-init, so the key has to be uploaded to IAM
+    rather than passed on the create-server call.
+    """
+    _, public_key_path = auth_utils.get_or_generate_keys()
+    with open(public_key_path, 'r', encoding='UTF-8') as pub_key_file:
+        public_key = pub_key_file.read().strip()
+
+    ok, error = scaleway_adaptor.check_credentials()
+    if not ok:
+        with ux_utils.print_exception_no_traceback():
+            raise exceptions.InvalidCloudCredentials(str(error))
+
+    iam = scaleway_adaptor.iam_api()
+    project_id = scaleway_adaptor.project_id()
+    existing_keys = iam.list_ssh_keys_all(project_id=project_id)
+    if not any(
+            scaleway_adaptor.public_key_matches(key, public_key)
+            for key in existing_keys):
+        iam.create_ssh_key(name=f'skypilot-{common_utils.get_user_hash()}',
+                           public_key=public_key,
+                           project_id=project_id)
 
     config['auth']['ssh_public_key'] = public_key_path
     return configure_ssh_info(config)

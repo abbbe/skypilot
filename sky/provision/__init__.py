@@ -28,6 +28,7 @@ from sky.provision import nebius
 from sky.provision import oci
 from sky.provision import primeintellect
 from sky.provision import runpod
+from sky.provision import scaleway
 from sky.provision import scp
 from sky.provision import seeweb
 from sky.provision import shadeform

@@ -1922,6 +1922,42 @@ Verda |community-badge|
 4. Alternatively, you can set the environment variables :code:`VERDA_CLIENT_ID` and :code:`VERDA_CLIENT_SECRET`.
 5. You are all set! Verda Cloud does not require any additional setup or dependencies.
 
+Scaleway |community-badge|
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Scaleway <https://www.scaleway.com/>`_ is a European cloud provider offering
+L4, L40S, H100 and B300 GPU instances in France and Poland. To use Scaleway
+with SkyPilot:
+
+1. Install the Scaleway SDK:
+
+.. code-block:: shell
+
+  pip install "skypilot[scaleway]"
+
+2. Generate an API key from the `Scaleway console <https://console.scaleway.com/iam/api-keys>`__.
+3. Configure credentials with the `scw CLI <https://github.com/scaleway/scaleway-cli>`__:
+
+.. code-block:: shell
+
+  scw init
+
+  Alternatively, set the environment variables :code:`SCW_ACCESS_KEY`,
+  :code:`SCW_SECRET_KEY` and :code:`SCW_DEFAULT_PROJECT_ID`.
+
+4. Verify the setup:
+
+.. code-block:: shell
+
+  sky check scaleway
+
+.. note::
+
+  Scaleway Instances have no spot tier, and SkyPilot currently launches
+  single-node Scaleway clusters only. SkyPilot creates a dedicated security
+  group per cluster that admits SSH plus any ports the task exposes; Scaleway's
+  project-default security group would otherwise accept all inbound traffic.
+
 
 .. _docker-image:
 

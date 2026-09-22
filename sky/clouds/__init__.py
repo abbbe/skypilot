@@ -29,6 +29,7 @@ from sky.clouds.oci import OCI
 from sky.clouds.paperspace import Paperspace
 from sky.clouds.primeintellect import PrimeIntellect
 from sky.clouds.runpod import RunPod
+from sky.clouds.scaleway import Scaleway
 from sky.clouds.scp import SCP
 from sky.clouds.seeweb import Seeweb
 from sky.clouds.shadeform import Shadeform
@@ -52,6 +53,7 @@ __all__ = [
     'Paperspace',
     'PrimeIntellect',
     'SCP',
+    'Scaleway',
     'Slurm',
     'RunPod',
     'Shadeform',
