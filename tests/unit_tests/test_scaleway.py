@@ -235,6 +235,67 @@ class TestImageAndVolumeSelection:
                 utils.resolve_image_id('fr-par-2', 'ubuntu_noble', 'sbs_volume')
 
 
+class TestSecurityGroupRules:
+    """Scaleway wants the rule protocol upper case, unlike direction/action."""
+
+    def test_protocol_is_sent_upper_case(self):
+        # The SDK's SecurityGroupRuleProtocol enum serializes to 'tcp', which
+        # the API rejects with "protocol: not a valid value". Verified against
+        # the live API; pin it so nobody swaps the literal back for the enum.
+        api = mock.Mock()
+        api.create_security_group.return_value = mock.Mock(
+            security_group=mock.Mock(id='sg-1'))
+        with mock.patch.object(scaleway_adaptor,
+                               'instance_api',
+                               return_value=api), \
+             mock.patch.object(scaleway_adaptor,
+                               'project_id',
+                               return_value='proj'), \
+             mock.patch.object(utils, 'find_security_group',
+                               return_value=None):
+            assert utils.create_security_group('fr-par-1', 'cluster',
+                                               [8080]) == 'sg-1'
+
+        calls = api.create_security_group_rule.call_args_list
+        # SSH plus the requested port.
+        assert [c.kwargs['dest_port_from'] for c in calls] == [22, 8080]
+        for call in calls:
+            assert call.kwargs['protocol'] == 'TCP'
+            # direction and action must stay lower case.
+            assert str(call.kwargs['direction']) == 'inbound'
+            assert str(call.kwargs['action']) == 'accept'
+
+    def test_ssh_is_not_duplicated_when_caller_asks_for_22(self):
+        api = mock.Mock()
+        api.create_security_group.return_value = mock.Mock(
+            security_group=mock.Mock(id='sg-1'))
+        with mock.patch.object(scaleway_adaptor,
+                               'instance_api',
+                               return_value=api), \
+             mock.patch.object(scaleway_adaptor,
+                               'project_id',
+                               return_value='proj'), \
+             mock.patch.object(utils, 'find_security_group',
+                               return_value=None):
+            utils.create_security_group('fr-par-1', 'cluster', [22, 443])
+        ports = [
+            c.kwargs['dest_port_from']
+            for c in api.create_security_group_rule.call_args_list
+        ]
+        assert ports == [22, 443]
+
+    def test_existing_group_is_reused(self):
+        api = mock.Mock()
+        with mock.patch.object(scaleway_adaptor,
+                               'instance_api',
+                               return_value=api), \
+             mock.patch.object(utils, 'find_security_group',
+                               return_value='sg-existing'):
+            assert utils.create_security_group('fr-par-1', 'cluster',
+                                               []) == 'sg-existing'
+        api.create_security_group.assert_not_called()
+
+
 class TestServerFields:
 
     def test_external_ip_prefers_public_ip(self):

@@ -46,6 +46,10 @@ _MIN_SBS_VOLUME_SIZE_GB = 10
 
 _POLL_INTERVAL_SECONDS = 5
 
+# The security-group-rule endpoint expects the protocol upper case. The SDK's
+# SecurityGroupRuleProtocol enum emits 'tcp', which the API refuses.
+_SECURITY_GROUP_RULE_PROTOCOL_TCP = 'TCP'
+
 
 def make_tag(key: str, value: str) -> str:
     return f'{key}={value}'
@@ -231,7 +235,6 @@ def create_security_group(zone: str, cluster_name_on_cloud: str,
     from scaleway.instance.v1 import SecurityGroupPolicy
     from scaleway.instance.v1 import SecurityGroupRuleAction
     from scaleway.instance.v1 import SecurityGroupRuleDirection
-    from scaleway.instance.v1 import SecurityGroupRuleProtocol
 
     existing = find_security_group(zone, cluster_name_on_cloud)
     if existing is not None:
@@ -253,7 +256,13 @@ def create_security_group(zone: str, cluster_name_on_cloud: str,
         api.create_security_group_rule(
             zone=zone,
             security_group_id=group.id,
-            protocol=SecurityGroupRuleProtocol.TCP,
+            # Not SecurityGroupRuleProtocol.TCP: that enum serializes to
+            # 'tcp', and this endpoint rejects it with
+            # "protocol: not a valid value". Scaleway wants the protocol
+            # upper case here while direction and action stay lower case, so
+            # the generated enum is wrong for this one field only. Verified
+            # against the live API; see tests/unit_tests/test_scaleway.py.
+            protocol=_SECURITY_GROUP_RULE_PROTOCOL_TCP,
             direction=SecurityGroupRuleDirection.INBOUND,
             action=SecurityGroupRuleAction.ACCEPT,
             ip_range='0.0.0.0/0',
