@@ -296,6 +296,67 @@ class TestSecurityGroupRules:
         api.create_security_group.assert_not_called()
 
 
+class TestTerminateServer:
+    """`terminate` is refused for a stopped server; delete_server is not."""
+
+    @staticmethod
+    def _server(state, allowed):
+        srv = mock.Mock(allowed_actions=allowed)
+        srv.state = state
+        return srv
+
+    def test_running_server_uses_the_terminate_action(self):
+        api = mock.Mock()
+        srv = self._server(utils.STATE_RUNNING,
+                           ['poweroff', 'terminate', 'reboot'])
+        with mock.patch.object(utils, 'get_server', return_value=srv), \
+             mock.patch.object(scaleway_adaptor, 'instance_api',
+                               return_value=api), \
+             mock.patch.object(utils, '_server_action') as action:
+            utils.terminate_server('fr-par-1', 'srv-1')
+        action.assert_called_once_with('fr-par-1', 'srv-1', 'terminate')
+        api.delete_server.assert_not_called()
+
+    def test_stopped_server_is_deleted_instead(self):
+        # Regression: a stopped server rejects 'terminate' with
+        # "invalid state 'stopped' for the action 'terminate'", which used to
+        # strand the server, its volume and its flexible IP -- all billed.
+        api = mock.Mock()
+        srv = self._server(utils.STATE_STOPPED, ['poweron', 'backup'])
+        with mock.patch.object(utils, 'get_server', return_value=srv), \
+             mock.patch.object(scaleway_adaptor, 'instance_api',
+                               return_value=api), \
+             mock.patch.object(utils, '_server_action') as action:
+            utils.terminate_server('fr-par-1', 'srv-1')
+        action.assert_not_called()
+        api.delete_server.assert_called_once_with(zone='fr-par-1',
+                                                  server_id='srv-1')
+
+    def test_transitioning_server_settles_first(self):
+        api = mock.Mock()
+        settled = self._server(utils.STATE_STOPPED, ['poweron'])
+        with mock.patch.object(utils, 'get_server',
+                               return_value=self._server(
+                                   utils.STATE_STOPPING, [])), \
+             mock.patch.object(utils, 'wait_for_state',
+                               return_value=settled) as waiter, \
+             mock.patch.object(scaleway_adaptor, 'instance_api',
+                               return_value=api):
+            utils.terminate_server('fr-par-1', 'srv-1')
+        waiter.assert_called_once()
+        api.delete_server.assert_called_once()
+
+    def test_absent_server_is_a_noop(self):
+        api = mock.Mock()
+        with mock.patch.object(utils, 'get_server', return_value=None), \
+             mock.patch.object(scaleway_adaptor, 'instance_api',
+                               return_value=api), \
+             mock.patch.object(utils, '_server_action') as action:
+            utils.terminate_server('fr-par-1', 'gone')
+        action.assert_not_called()
+        api.delete_server.assert_not_called()
+
+
 class TestServerFields:
 
     def test_external_ip_prefers_public_ip(self):

@@ -46,6 +46,10 @@ _MIN_SBS_VOLUME_SIZE_GB = 10
 
 _POLL_INTERVAL_SECONDS = 5
 
+# How long to wait for a server that is mid-transition to settle before
+# deciding how to delete it.
+_TRANSITION_TIMEOUT_SECONDS = 5 * 60
+
 # The security-group-rule endpoint expects the protocol upper case. The SDK's
 # SecurityGroupRuleProtocol enum emits 'tcp', which the API refuses.
 _SECURITY_GROUP_RULE_PROTOCOL_TCP = 'TCP'
@@ -412,8 +416,44 @@ def power_off(zone: str, server_id: str) -> None:
 
 
 def terminate_server(zone: str, server_id: str) -> None:
-    """Terminates a server, deleting it and its attached volumes."""
-    _server_action(zone, server_id, 'terminate')
+    """Deletes a server, whether it is running or stopped.
+
+    The ``terminate`` action only applies to a running server: a stopped one
+    is refused with "invalid state 'stopped' for the action 'terminate'",
+    which would strand the server -- and its volume and flexible IP, both
+    still billed -- after `sky stop` or an autostop. A stopped server has to
+    be deleted through the delete endpoint instead.
+
+    Rather than infer this from the state, branch on the ``allowed_actions``
+    the API reports for the server, so a change in which states accept
+    ``terminate`` does not silently reintroduce the problem. Either path
+    leaves volumes behind in some cases, so callers still reclaim them.
+    """
+    server = get_server(zone, server_id)
+    if server is None:
+        return
+
+    if str(server.state) in (STATE_STARTING, STATE_STOPPING):
+        # Neither path is accepted mid-transition; settle first.
+        server = wait_for_state(
+            zone, server_id,
+            (STATE_RUNNING, STATE_STOPPED, STATE_STOPPED_IN_PLACE),
+            _TRANSITION_TIMEOUT_SECONDS)
+        if server is None:
+            return
+
+    allowed = {str(a) for a in (server.allowed_actions or [])}
+    if 'terminate' in allowed:
+        _server_action(zone, server_id, 'terminate')
+        return
+
+    api = scaleway_adaptor.instance_api()
+    try:
+        api.delete_server(zone=zone, server_id=server_id)
+    except Exception as e:  # pylint: disable=broad-except
+        if _is_not_found(e):
+            return
+        raise
 
 
 def _server_action(zone: str, server_id: str, action: str) -> None:
