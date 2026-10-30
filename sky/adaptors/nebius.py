@@ -203,6 +203,14 @@ def iam():
     return iam_v1
 
 
+def iam_v2():
+    # Project and tenant services: their v1 is deprecated (supported until
+    # 2026-12-16). v2 keeps a project's region in spec, not status.
+    # pylint: disable=import-outside-toplevel
+    from nebius.api.nebius.iam import v2
+    return v2
+
+
 def billing():
     # pylint: disable=import-outside-toplevel
     from nebius.api.nebius.billing import v1 as billing_v1

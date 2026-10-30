@@ -529,9 +529,9 @@ class Nebius(clouds.Cloud):
             return False, f'{tenant_msg}'
         sdk = nebius.sdk()
         try:
-            service = nebius.iam().ProjectServiceClient(sdk)
+            service = nebius.iam_v2().ProjectServiceClient(sdk)
             service.list(
-                nebius.iam().ListProjectsRequest(parent_id=tenant_id)).wait()
+                nebius.iam_v2().ListProjectsRequest(parent_id=tenant_id)).wait()
         except nebius.request_error() as e:
             return False, (
                 f'{e.status} \n'  # First line is indented by 4 spaces

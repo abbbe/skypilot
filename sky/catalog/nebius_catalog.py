@@ -200,16 +200,16 @@ def _load_existing_catalog(catalog_file) -> Optional[common.LazyDataFrame]:
 def _get_region_projects() -> Dict[str, str]:
     """Returns a mapping from region to project ID for the current tenant."""
     from sky.adaptors import nebius
-    from sky.adaptors.nebius import iam
+    from sky.adaptors.nebius import iam_v2
 
-    projects_response = nebius.sync_call(iam().ProjectServiceClient(
+    projects_response = nebius.sync_call(iam_v2().ProjectServiceClient(
         nebius.sdk()).list(
-            iam().ListProjectsRequest(parent_id=nebius.get_tenant_id()),
+            iam_v2().ListProjectsRequest(parent_id=nebius.get_tenant_id()),
             timeout=nebius.READ_TIMEOUT))
 
     region_to_project_id: Dict[str, str] = {}
     for project in projects_response.items:
-        region = project.status.region
+        region = project.spec.region
         if region not in region_to_project_id:
             # Respects the override logic from get_project_by_region.
             config_project_id = skypilot_config.get_effective_region_config(

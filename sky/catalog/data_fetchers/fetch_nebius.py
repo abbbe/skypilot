@@ -25,7 +25,7 @@ except ImportError:
 from sky.adaptors import nebius
 from sky.adaptors.nebius import billing
 from sky.adaptors.nebius import compute
-from sky.adaptors.nebius import iam
+from sky.adaptors.nebius import iam_v2
 from sky.adaptors.nebius import nebius_common
 
 logger = logging.getLogger(__name__)
@@ -446,12 +446,12 @@ def _get_regions_map() -> Dict[str, str]:
                         and values are full region names (e.g., "eu-north1").
     """
     result = {}
-    response = iam().TenantServiceClient(nebius.sdk()).list(
-        iam().ListTenantsRequest(), timeout=TIMEOUT).wait()
+    response = iam_v2().TenantServiceClient(nebius.sdk()).list(
+        iam_v2().ListTenantsRequest(), timeout=TIMEOUT).wait()
 
     for tenant in response.items:
-        projects = (iam().ProjectServiceClient(nebius.sdk()).list(
-            iam().ListProjectsRequest(parent_id=tenant.metadata.id),
+        projects = (iam_v2().ProjectServiceClient(nebius.sdk()).list(
+            iam_v2().ListProjectsRequest(parent_id=tenant.metadata.id),
             timeout=TIMEOUT).wait())
 
         for project in projects.items:
@@ -460,7 +460,7 @@ def _get_regions_map() -> Dict[str, str]:
                 logger.error('Could not parse project id %s',
                              project.metadata.id)
                 continue
-            result[match.group(1)] = project.status.region
+            result[match.group(1)] = project.spec.region
 
     return result
 

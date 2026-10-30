@@ -56,13 +56,13 @@ def get_project_by_region(region: str) -> str:
         cloud='nebius', region=region, keys=('project_id',), default_value=None)
     if project_id is not None:
         return project_id
-    service = nebius.iam().ProjectServiceClient(nebius.sdk())
+    service = nebius.iam_v2().ProjectServiceClient(nebius.sdk())
     projects = nebius.sync_call(
         service.list(
-            nebius.iam().ListProjectsRequest(parent_id=nebius.get_tenant_id()),
+            nebius.iam_v2().ListProjectsRequest(parent_id=nebius.get_tenant_id()),
             timeout=nebius.READ_TIMEOUT))
     for project in projects.items:
-        if project.status.region == region:
+        if project.spec.region == region:
             return project.metadata.id
     raise Exception(f'No project found for region "{region}".')
 
