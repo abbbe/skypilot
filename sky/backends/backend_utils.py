@@ -1313,7 +1313,7 @@ def write_cluster_config(
             'volume_mount_rw_paths': volume_mount_rw_paths,
 
             # runcmd to run before any of the SkyPilot runtime setup commands.
-            # This is currently only used by AWS and Kubernetes.
+            # This is currently only used by AWS, Kubernetes and Nebius.
             'runcmd': runcmd,
 
             # Priority class

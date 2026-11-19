@@ -2418,6 +2418,23 @@ def get_config_schema():
                 'disk_encrypted': {
                     'type': 'boolean',
                 },
+                # What Nebius does with an on-demand VM that fails -- or is
+                # shut down from inside the guest: 'recover' (Nebius's own
+                # default) restarts it and keeps billing, 'fail' leaves it
+                # stopped. Unset: not sent, i.e. Nebius's default. Spot
+                # instances are always created with 'fail'.
+                'recovery_policy': {
+                    'type': 'string',
+                    'case_insensitive_enum': ['recover', 'fail'],
+                },
+                # cloud-init `runcmd` entries: run as root, once, on the
+                # instance's first boot, before any SkyPilot setup.
+                'post_provision_runcmd': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string'
+                    },
+                },
                 'tenant_id': {
                     'type': 'string',
                 },

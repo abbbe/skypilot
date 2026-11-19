@@ -263,6 +263,9 @@ Below is the configuration syntax and some example values. See detailed explanat
     :ref:`use_internal_ips <config-yaml-nebius-use-internal-ips>`: true
     :ref:`use_static_ip_address <config-yaml-nebius-use-static-ip-address>`: true
     :ref:`disk_encrypted <config-yaml-nebius-disk-encrypted>`: true
+    :ref:`recovery_policy <config-yaml-nebius-recovery-policy>`: fail
+    :ref:`post_provision_runcmd <config-yaml-nebius-post-provision-runcmd>`:
+      - echo "hello world!"
     :ref:`ssh_proxy_command <config-yaml-nebius-ssh-proxy-command>`: ssh -W %h:%p user@host
     :ref:`tenant_id <config-yaml-nebius-tenant-id>`: tenant-1234567890
     :ref:`domain <config-yaml-nebius-domain>`: api.nebius.cloud:443
@@ -2999,6 +3002,42 @@ Non-replicated and Network SSD IO M3 boot disks launched by SkyPilot. Network
 SSD boot disks are encrypted by default.
 
 Default: ``false``.
+
+.. _config-yaml-nebius-recovery-policy:
+
+``nebius.recovery_policy``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+What Nebius does with an on-demand VM that fails (optional).
+
+Nebius treats a VM that is shut down from inside the guest (``poweroff``,
+``shutdown``) like a failed one. With ``recover``, Nebius's own default, it
+restarts the VM and keeps billing it. With ``fail``, the VM is stopped and
+not restarted.
+
+Not set: SkyPilot does not send a policy, and Nebius's default applies. Spot
+instances are always created with ``fail``, whatever this says.
+
+.. code-block:: yaml
+
+  nebius:
+    recovery_policy: fail
+
+.. _config-yaml-nebius-post-provision-runcmd:
+
+``nebius.post_provision_runcmd``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run commands during the instance initialization phase (optional).
+
+Each entry is a string, passed to cloud-init as a ``runcmd`` entry: run as
+root, once, on the instance's first boot, before any SkyPilot setup.
+
+.. code-block:: yaml
+
+  nebius:
+    post_provision_runcmd:
+      - echo "hello world!"
 
 .. _config-yaml-nebius-ssh-proxy-command:
 

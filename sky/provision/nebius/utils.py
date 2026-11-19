@@ -550,7 +550,8 @@ def launch(cluster_name_on_cloud: str,
            use_static_ip_address: bool = False,
            use_spot: bool = False,
            network_tier: Optional[resources_utils.NetworkTier] = None,
-           security_group_ids: Optional[List[str]] = None) -> str:
+           security_group_ids: Optional[List[str]] = None,
+           recovery_policy: Optional[str] = None) -> str:
     # Each node must have a unique name to avoid conflicts between
     # multiple worker VMs. To ensure uniqueness,a UUID is appended
     # to the node name.
@@ -652,6 +653,20 @@ def launch(cluster_name_on_cloud: str,
                     id=fs['filesystem_id'])))
 
     sub_net_id = get_subnet_id(region, project_id)
+    # Preemptible instances must be created with FAIL. On-demand ones get it
+    # only when `nebius.recovery_policy: fail` asks for it; otherwise nothing
+    # is sent and Nebius applies its default, RECOVER -- under which a VM that
+    # shuts itself down from inside is restarted and billed on.
+    recovery_policy_spec = None
+    if use_spot or (recovery_policy or '').lower() == 'fail':
+        recovery_policy_spec = nebius.compute().InstanceRecoveryPolicy.FAIL
+    elif (recovery_policy or '').lower() == 'recover':
+        recovery_policy_spec = nebius.compute().InstanceRecoveryPolicy.RECOVER
+    elif recovery_policy is not None:
+        raise ValueError(
+            f'Unknown nebius.recovery_policy {recovery_policy!r}: '
+            'expected "recover" or "fail".')
+
     service = nebius.compute().InstanceServiceClient(nebius.sdk())
     logger.debug(f'Creating instance {instance_name} in project {project_id}.')
     try:
@@ -689,8 +704,7 @@ def launch(cluster_name_on_cloud: str,
                             ] or None,
                         )
                     ],
-                    recovery_policy=nebius.compute().InstanceRecoveryPolicy.FAIL
-                    if use_spot else None,
+                    recovery_policy=recovery_policy_spec,
                     preemptible=nebius.compute().PreemptibleSpec(
                         priority=1,
                         on_preemption=nebius.compute().PreemptibleSpec.

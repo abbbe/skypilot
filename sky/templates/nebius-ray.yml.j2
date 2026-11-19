@@ -55,6 +55,9 @@ available_node_types:
       network_tier: {{network_tier}}
       disk_tier: {{disk_tier}}
       disk_encrypted: {{disk_encrypted}}
+      {%- if recovery_policy is not none %}
+      recovery_policy: {{recovery_policy}}
+      {%- endif %}
       filesystems:
         {%- for fs in filesystems %}
         - filesystem_id: {{ fs.filesystem_id }}
@@ -106,6 +109,12 @@ available_node_types:
             ssh_authorized_keys:
               - |-
                 skypilot:ssh_public_key_content
+        {%- if runcmd %}
+        runcmd:
+        {%- for cmd in runcmd %}
+          - {{ cmd | tojson }}
+        {%- endfor %}
+        {%- endif %}
 
 head_node_type: ray_head_default
 

@@ -347,6 +347,14 @@ class Nebius(clouds.Cloud):
             keys=('disk_encrypted',),
             default_value=False)
 
+        # Opt-in. None means "do not send one": Nebius then applies its own
+        # default (recover), and the rendered cluster YAML is byte-for-byte
+        # what it was before this key existed.
+        recovery_policy = skypilot_config.get_nested(
+            ('nebius', 'recovery_policy'), default_value=None)
+        recovery_policy = (recovery_policy.lower() if isinstance(
+            recovery_policy, str) else None)
+
         def _get_disk_tier() -> resources_utils.DiskTier:
             logger.debug(f'Getting disk tier for Nebius {resources.disk_tier}.')
             return Nebius._translate_disk_tier(resources.disk_tier)
@@ -403,6 +411,7 @@ class Nebius(clouds.Cloud):
             'network_tier': resources.network_tier,
             'disk_tier': _get_disk_tier(),
             'disk_encrypted': disk_encrypted,
+            'recovery_policy': recovery_policy,
             'security_group': security_group,
             'security_group_managed_by_skypilot':
                 str(security_group_managed_by_skypilot).lower(),

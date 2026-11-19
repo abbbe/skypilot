@@ -164,6 +164,7 @@ def run_instances(region: str, cluster_name: str, cluster_name_on_cloud: str,
                 not config.provider_config['use_internal_ips']),
             disk_tier=config.node_config['disk_tier'],
             disk_encrypted=config.node_config.get('disk_encrypted', False),
+            recovery_policy=config.node_config.get('recovery_policy'),
             use_static_ip_address=config.provider_config.get(
                 'use_static_ip_address', False),
             filesystems=config.node_config.get('filesystems', []),
